@@ -14,16 +14,205 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bar_matches: {
+        Row: {
+          bar_id: string
+          created_at: string
+          id: string
+          match_id: string
+        }
+        Insert: {
+          bar_id: string
+          created_at?: string
+          id?: string
+          match_id: string
+        }
+        Update: {
+          bar_id?: string
+          created_at?: string
+          id?: string
+          match_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bar_matches_bar_id_fkey"
+            columns: ["bar_id"]
+            isOneToOne: false
+            referencedRelation: "bars"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bar_matches_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bars: {
+        Row: {
+          address: string
+          approved_at: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          features: string[]
+          id: string
+          instagram: string | null
+          latitude: number
+          longitude: number
+          name: string
+          neighborhood: string
+          owner_id: string | null
+          phone: string | null
+          slug: string
+          status: Database["public"]["Enums"]["bar_status"]
+          updated_at: string
+          zona: string
+        }
+        Insert: {
+          address: string
+          approved_at?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          instagram?: string | null
+          latitude: number
+          longitude: number
+          name: string
+          neighborhood: string
+          owner_id?: string | null
+          phone?: string | null
+          slug: string
+          status?: Database["public"]["Enums"]["bar_status"]
+          updated_at?: string
+          zona: string
+        }
+        Update: {
+          address?: string
+          approved_at?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          features?: string[]
+          id?: string
+          instagram?: string | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          neighborhood?: string
+          owner_id?: string | null
+          phone?: string | null
+          slug?: string
+          status?: Database["public"]["Enums"]["bar_status"]
+          updated_at?: string
+          zona?: string
+        }
+        Relationships: []
+      }
+      matches: {
+        Row: {
+          away_code: string
+          away_team: string
+          created_at: string
+          group_name: string | null
+          home_code: string
+          home_team: string
+          id: string
+          kickoff_at: string
+          stage: string
+        }
+        Insert: {
+          away_code: string
+          away_team: string
+          created_at?: string
+          group_name?: string | null
+          home_code: string
+          home_team: string
+          id?: string
+          kickoff_at: string
+          stage?: string
+        }
+        Update: {
+          away_code?: string
+          away_team?: string
+          created_at?: string
+          group_name?: string | null
+          home_code?: string
+          home_team?: string
+          id?: string
+          kickoff_at?: string
+          stage?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "bar_owner"
+      bar_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +339,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "bar_owner"],
+      bar_status: ["pending", "approved", "rejected"],
+    },
   },
 } as const
