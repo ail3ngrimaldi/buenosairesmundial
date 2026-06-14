@@ -8,6 +8,7 @@ import { LogOut } from "lucide-react";
 
 export function SiteHeader() {
   const [session, setSession] = useState<Session | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,6 +16,17 @@ export function SiteHeader() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session?.user) { setIsAdmin(false); return; }
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .eq("role", "admin")
+      .maybeSingle()
+      .then(({ data }) => setIsAdmin(!!data));
+  }, [session?.user?.id]);
 
   const handleSignIn = async () => {
     const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/dashboard" });
@@ -39,6 +51,11 @@ export function SiteHeader() {
           </Link>
           {session ? (
             <>
+              {isAdmin && (
+                <Link to="/admin" className="text-muted-foreground hover:text-foreground transition-colors" activeProps={{ className: "text-albice" }}>
+                  Admin
+                </Link>
+              )}
               <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors" activeProps={{ className: "text-albice" }}>
                 Mi bar
               </Link>

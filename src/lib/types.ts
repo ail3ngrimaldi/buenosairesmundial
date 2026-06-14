@@ -28,6 +28,9 @@ export interface Bar {
   cover_image_url: string | null;
   features: string[];
   status: BarStatus;
+  created_at: string;
+  updated_at: string;
+  approved_at: string | null;
 }
 
 export interface BarWithMatches extends Bar {
