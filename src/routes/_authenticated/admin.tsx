@@ -1,10 +1,11 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { isAdminEmail } from "@/lib/admin";
 import { CheckCircle2, XCircle, Clock, CalendarCheck, MapPin, Phone, Instagram } from "lucide-react";
 import type { Bar } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -23,28 +24,14 @@ function AdminPanel() {
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [actingId, setActingId] = useState<string | null>(null);
 
-  // Check admin role inside the component — more reliable than beforeLoad
-  const { data: isAdmin, isLoading: checkingRole } = useQuery({
-    queryKey: ["is-admin", user.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .maybeSingle();
-      return !!data;
-    },
-  });
+  const admin = isAdminEmail(user.email);
 
   useEffect(() => {
-    if (!checkingRole && isAdmin === false) {
-      navigate({ to: "/" });
-    }
-  }, [isAdmin, checkingRole, navigate]);
+    if (!admin) navigate({ to: "/" });
+  }, [admin, navigate]);
 
   const { data: bars = [], isLoading } = useQuery({
-    enabled: !!isAdmin,
+    enabled: admin,
     queryKey: ["admin-bars", filter],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -58,7 +45,7 @@ function AdminPanel() {
   });
 
   const { data: counts } = useQuery({
-    enabled: !!isAdmin,
+    enabled: admin,
     queryKey: ["admin-bar-counts"],
     queryFn: async () => {
       const [p, a, r] = await Promise.all([
@@ -85,16 +72,7 @@ function AdminPanel() {
     setActingId(null);
   };
 
-  if (checkingRole) {
-    return (
-      <div className="min-h-screen bg-stadium">
-        <SiteHeader />
-        <div className="max-w-4xl mx-auto p-12 text-center text-muted-foreground">Verificando acceso…</div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) return null;
+  if (!admin) return null;
 
   const tabs: { key: StatusFilter; label: string }[] = [
     { key: "pending", label: `Pendientes${counts ? ` (${counts.pending})` : ""}` },

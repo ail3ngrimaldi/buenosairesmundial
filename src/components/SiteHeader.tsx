@@ -3,36 +3,21 @@ import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { isAdminEmail } from "@/lib/admin";
 import { Button } from "@/components/ui/button";
 import { LogOut, ShieldCheck } from "lucide-react";
 
 export function SiteHeader() {
   const [session, setSession] = useState<Session | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (data.session?.user) checkAdmin(data.session.user.id);
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      if (s?.user) checkAdmin(s.user.id);
-      else setIsAdmin(false);
-    });
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => subscription.unsubscribe();
   }, []);
 
-  const checkAdmin = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .eq("role", "admin")
-      .maybeSingle();
-    setIsAdmin(!!data);
-  };
+  const isAdmin = isAdminEmail(session?.user?.email);
 
   const handleSignIn = async () => {
     const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/dashboard" });
@@ -41,7 +26,6 @@ export function SiteHeader() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    setIsAdmin(false);
     navigate({ to: "/" });
   };
 
