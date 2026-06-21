@@ -9,7 +9,7 @@ import { FEATURE_OPTIONS, ZONAS, NEIGHBORHOODS_BY_ZONA, type Bar, type BarWithMa
 import { cn } from "@/lib/utils";
 import { MapPin, Tv, Beer, Pizza, Coffee, UtensilsCrossed, Filter } from "lucide-react";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/")({ 
   head: () => ({
     meta: [
       { title: "MundialBar — ¿Dónde mirás el partido?" },
@@ -43,7 +43,8 @@ function DiscoveryPage() {
   const { data: matches = [] } = useQuery({
     queryKey: ["matches"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("matches").select("*").order("kickoff_at");
+      const now = new Date().toISOString();
+      const { data, error } = await supabase.from("matches").select("*").gte("kickoff_at", now).order("kickoff_at");
       if (error) throw error;
       return data as Match[];
     },
