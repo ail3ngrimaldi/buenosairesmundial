@@ -26,34 +26,31 @@ function AdminPanel() {
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const { data: bars = [], isLoading } = useQuery({
-    queryKey: ["admin-bars", filter],
+  // Single fetch of all bars — filtering and counts are computed client-side.
+  const { data: allBars = [], isLoading } = useQuery({
+    queryKey: ["admin-bars"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bars")
         .select("*")
-        .eq("status", filter)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data as BarWithMeeting[];
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
-  const { data: counts } = useQuery({
-    queryKey: ["admin-bar-counts"],
-    queryFn: async () => {
-      const [p, a, r] = await Promise.all([
-        supabase.from("bars").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("bars").select("id", { count: "exact", head: true }).eq("status", "approved"),
-        supabase.from("bars").select("id", { count: "exact", head: true }).eq("status", "rejected"),
-      ]);
-      return { pending: p.count ?? 0, approved: a.count ?? 0, rejected: r.count ?? 0 };
-    },
-  });
+  const bars = allBars.filter((b) => b.status === filter);
+  const counts = {
+    pending: allBars.filter((b) => b.status === "pending").length,
+    approved: allBars.filter((b) => b.status === "approved").length,
+    rejected: allBars.filter((b) => b.status === "rejected").length,
+  };
 
   const setStatus = async (barId: string, status: "approved" | "rejected") => {
     setActingId(barId);
-    const patch: Record<string, unknown> = { status };
+    const patch: { status: "approved" | "rejected"; approved_at?: string } = { status };
     if (status === "approved") patch.approved_at = new Date().toISOString();
     const { error } = await supabase.from("bars").update(patch).eq("id", barId);
     if (error) {
@@ -61,15 +58,14 @@ function AdminPanel() {
     } else {
       toast.success(status === "approved" ? "Bar aprobado ✓" : "Bar rechazado");
       qc.invalidateQueries({ queryKey: ["admin-bars"] });
-      qc.invalidateQueries({ queryKey: ["admin-bar-counts"] });
     }
     setActingId(null);
   };
 
   const tabs: { key: StatusFilter; label: string }[] = [
-    { key: "pending", label: `Pendientes${counts ? ` (${counts.pending})` : ""}` },
-    { key: "approved", label: `Aprobados${counts ? ` (${counts.approved})` : ""}` },
-    { key: "rejected", label: `Rechazados${counts ? ` (${counts.rejected})` : ""}` },
+    { key: "pending", label: `Pendientes (${counts.pending})` },
+    { key: "approved", label: `Aprobados (${counts.approved})` },
+    { key: "rejected", label: `Rechazados (${counts.rejected})` },
   ];
 
   return (
@@ -81,7 +77,6 @@ function AdminPanel() {
           <h1 className="font-display text-4xl">Solicitudes de bares</h1>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-2 mb-8 border-b border-border pb-0">
           {tabs.map((t) => (
             <button
@@ -148,48 +143,24 @@ function AdminPanel() {
 
               {bar.status === "pending" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button
-                    size="sm"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "approved")}
-                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold"
-                  >
+                  <Button size="sm" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "approved")} className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold">
                     <CheckCircle2 className="size-4 mr-1.5" /> Aprobar
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "rejected")}
-                    className="border-red-card/50 text-red-card hover:bg-red-card/10"
-                  >
+                  <Button size="sm" variant="outline" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "rejected")} className="border-red-card/50 text-red-card hover:bg-red-card/10">
                     <XCircle className="size-4 mr-1.5" /> Rechazar
                   </Button>
                 </div>
               )}
-
               {bar.status === "approved" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "rejected")}
-                    className="border-red-card/50 text-red-card hover:bg-red-card/10"
-                  >
+                  <Button size="sm" variant="outline" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "rejected")} className="border-red-card/50 text-red-card hover:bg-red-card/10">
                     <XCircle className="size-4 mr-1.5" /> Dar de baja
                   </Button>
                 </div>
               )}
-
               {bar.status === "rejected" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button
-                    size="sm"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "approved")}
-                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold"
-                  >
+                  <Button size="sm" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "approved")} className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold">
                     <CheckCircle2 className="size-4 mr-1.5" /> Aprobar igual
                   </Button>
                 </div>
@@ -203,11 +174,7 @@ function AdminPanel() {
 }
 
 function Info({ icon, label }: { icon: React.ReactNode; label: string }) {
-  return (
-    <p className="flex items-center gap-1.5 text-muted-foreground">
-      {icon} {label}
-    </p>
-  );
+  return <p className="flex items-center gap-1.5 text-muted-foreground">{icon} {label}</p>;
 }
 
 function StatusBadge({ status }: { status: Bar["status"] }) {

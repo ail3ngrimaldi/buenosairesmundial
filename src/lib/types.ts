@@ -61,11 +61,11 @@ export const NEIGHBORHOODS_BY_ZONA: Record<Zona, string[]> = {
     "Munro","Carapachay","La Lucila",
   ],
   "Zona Sur": [
-    "Avellaneda","Lanús","Lomas de Zamora","Quilmes","Banfield","Adrogue",
+    "Avellaneda","Lanús","Lomas de Zamora","Quilmes","Banfield","Adrogüé",
     "Temperley","Bernal","Wilde","Sarandí",
   ],
   "Zona Oeste": [
-    "Ramos Mejía","Morón","Haedo","Ituzaíngo","Castelar","San Justo",
+    "Ramos Mejía","Morón","Haedo","Ituzaingó","Castelar","San Justo",
     "Caseros","Hurlingham",
   ],
 };

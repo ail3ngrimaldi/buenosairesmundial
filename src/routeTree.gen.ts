@@ -12,7 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
-import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedMibarRouteImport } from './routes/_authenticated/mibar'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -29,9 +29,9 @@ const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
   path: '/onboarding',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedMibarRoute = AuthenticatedMibarRouteImport.update({
+  id: '/mibar',
+  path: '/mibar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
@@ -42,36 +42,36 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/mibar': typeof AuthenticatedMibarRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof AuthenticatedDashboardRoute
-  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/mibar': typeof AuthenticatedMibarRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
-  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
-  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/mibar': typeof AuthenticatedMibarRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/dashboard' | '/onboarding' | '/admin'
+  fullPaths: '/' | '/admin' | '/mibar' | '/onboarding'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/dashboard' | '/onboarding' | '/admin'
+  to: '/' | '/admin' | '/mibar' | '/onboarding'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
-    | '/_authenticated/dashboard'
-    | '/_authenticated/onboarding'
     | '/_authenticated/admin'
+    | '/_authenticated/mibar'
+    | '/_authenticated/onboarding'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -102,11 +102,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/mibar': {
+      id: '/_authenticated/mibar'
+      path: '/mibar'
+      fullPath: '/mibar'
+      preLoaderRoute: typeof AuthenticatedMibarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin': {
@@ -120,15 +120,15 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
-  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
-  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedMibarRoute: typeof AuthenticatedMibarRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
-  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
-  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedMibarRoute: AuthenticatedMibarRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =

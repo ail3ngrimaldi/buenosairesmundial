@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -41,12 +42,13 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
 function Onboarding() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [zona, setZona] = useState<Zona>("CABA");
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [wantsMeeting, setWantsMeeting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
-  const [submittedName, setSubmittedName] = useState("");
+  const [savedName, setSavedName] = useState("");
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -60,43 +62,39 @@ function Onboarding() {
       phone: fd.get("phone") || undefined,
       instagram: fd.get("instagram") || undefined,
     });
-    if (!parsed.success) {
-      toast.error("Revisá los datos del formulario");
-      return;
-    }
+    if (!parsed.success) { toast.error("Revisá los datos del formulario"); return; }
     setSubmitting(true);
 
     const coords = await geocodeAddress(parsed.data.address);
     const slug =
-      parsed.data.name
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "") +
-      "-" +
-      Math.random().toString(36).slice(2, 6);
+      parsed.data.name.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") +
+      "-" + Math.random().toString(36).slice(2, 6);
 
-    const { error } = await supabase.from("bars").insert({
-      owner_id: user.id,
-      name: parsed.data.name,
-      slug,
-      address: parsed.data.address,
-      neighborhood: parsed.data.neighborhood,
-      zona: parsed.data.zona,
-      latitude: coords.lat,
-      longitude: coords.lng,
-      description: parsed.data.description ?? null,
-      phone: parsed.data.phone ?? null,
-      instagram: parsed.data.instagram ?? null,
-      features: Array.from(features),
-      wants_meeting: wantsMeeting,
-      status: "pending",
-    });
+    const { data: inserted, error } = await supabase
+      .from("bars")
+      .insert({
+        owner_id: user.id,
+        name: parsed.data.name,
+        slug,
+        address: parsed.data.address,
+        neighborhood: parsed.data.neighborhood,
+        zona: parsed.data.zona,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        description: parsed.data.description ?? null,
+        phone: parsed.data.phone ?? null,
+        instagram: parsed.data.instagram ?? null,
+        features: Array.from(features),
+        wants_meeting: wantsMeeting,
+        status: "pending",
+      })
+      .select()
+      .single();
 
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    setSubmittedName(parsed.data.name);
+    if (inserted) qc.setQueryData(["my-bar", user.id], inserted);
+    setSavedName(parsed.data.name);
     setDone(true);
   };
 
@@ -118,18 +116,18 @@ function Onboarding() {
           </div>
           <h1 className="font-display text-4xl mb-3">¡Solicitud enviada!</h1>
           <p className="text-muted-foreground mb-2">
-            Vamos a revisar los datos de <strong className="text-foreground">{submittedName}</strong> y te avisamos en menos de <strong className="text-foreground">24 horas</strong>.
+            Estamos revisando los datos de <strong className="text-foreground">{savedName}</strong>. Apenas la aprobemos, te avisamos por alguno de los canales que informaste.
           </p>
           {wantsMeeting && (
             <p className="text-sm text-albice mt-3 flex items-center justify-center gap-2">
               <CalendarCheck className="size-4" /> Nos anotamos que querés reunirte — te contactamos pronto.
             </p>
           )}
-          <p className="text-sm text-muted-foreground mt-6 mb-8">
-            Mientras tanto podés ir cargando los partidos que vas a transmitir en tu dashboard.
+          <p className="text-sm text-muted-foreground mt-4 mb-8">
+            Mientras tanto podés ir eligiendo los partidos que vas a transmitir. La selección queda guardada aunque cambie tu estado.
           </p>
-          <Button onClick={() => navigate({ to: "/dashboard" })} className="bg-albice text-stadium hover:bg-albice/90 font-semibold">
-            Ir a mi panel
+          <Button onClick={() => navigate({ to: "/mibar" })} className="bg-albice text-stadium hover:bg-albice/90 font-semibold">
+            Elegir partidos ahora
           </Button>
         </main>
       </div>
@@ -150,11 +148,9 @@ function Onboarding() {
           <Field label="Nombre del bar *">
             <Input name="name" required maxLength={80} placeholder="Ej: La Mezzetta" />
           </Field>
-
           <Field label="Dirección completa *" hint="Incluí calle y número. Ej: Av. Álvarez Thomas 1321, Villa Crespo">
             <Input name="address" required maxLength={200} placeholder="Av. Álvarez Thomas 1321" />
           </Field>
-
           <div className="grid grid-cols-2 gap-4">
             <Field label="Zona *">
               <div className="flex flex-wrap gap-2">
@@ -173,11 +169,9 @@ function Onboarding() {
               </select>
             </Field>
           </div>
-
           <Field label="Descripción (opcional)" hint="¿Qué hace especial a tu bar? Capacidad, ambiente, pantallas…">
             <Textarea name="description" maxLength={500} rows={3} placeholder="Bar con 3 pantallas gigantes, cocina casera y buen ambiente familiar." />
           </Field>
-
           <div className="grid grid-cols-2 gap-4">
             <Field label="Teléfono (opcional)">
               <Input name="phone" maxLength={40} placeholder="+54 11 1234-5678" />
@@ -186,7 +180,6 @@ function Onboarding() {
               <Input name="instagram" maxLength={80} placeholder="@tubar" />
             </Field>
           </div>
-
           <Field label="Servicios que ofrecés">
             <div className="flex flex-wrap gap-2">
               {FEATURE_OPTIONS.map((f) => (
@@ -198,18 +191,11 @@ function Onboarding() {
               ))}
             </div>
           </Field>
-
-          <div
-            onClick={() => setWantsMeeting((v) => !v)}
-            className={cn(
-              "flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors",
-              wantsMeeting ? "border-albice bg-albice/10" : "border-border hover:border-albice/40"
-            )}
-          >
-            <div className={cn(
-              "mt-0.5 size-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-              wantsMeeting ? "bg-albice border-albice" : "border-border"
-            )}>
+          <div onClick={() => setWantsMeeting((v) => !v)}
+            className={cn("flex items-start gap-3 p-4 rounded-xl border cursor-pointer transition-colors",
+              wantsMeeting ? "border-albice bg-albice/10" : "border-border hover:border-albice/40")}>
+            <div className={cn("mt-0.5 size-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+              wantsMeeting ? "bg-albice border-albice" : "border-border")}>
               {wantsMeeting && <CheckCircle2 className="size-3 text-stadium" />}
             </div>
             <div>
@@ -217,7 +203,6 @@ function Onboarding() {
               <p className="text-xs text-muted-foreground mt-0.5">Podemos coordinar una charla antes de publicar tu bar.</p>
             </div>
           </div>
-
           <Button type="submit" disabled={submitting} className="bg-albice text-stadium hover:bg-albice/90 font-semibold w-full text-base py-5">
             {submitting ? "Enviando solicitud…" : "Enviar para revisión"}
           </Button>
