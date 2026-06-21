@@ -1,16 +1,20 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { isAdminEmail } from "@/lib/admin";
 import { CheckCircle2, XCircle, Clock, CalendarCheck, MapPin, Phone, Instagram } from "lucide-react";
 import type { Bar } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { isAdminEmail } from "@/lib/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
+  beforeLoad: async ({ context }) => {
+    const user = (context as { user: { email?: string } }).user;
+    if (!isAdminEmail(user?.email)) throw redirect({ to: "/" });
+  },
   component: AdminPanel,
 });
 
@@ -18,20 +22,11 @@ type BarWithMeeting = Bar & { wants_meeting: boolean; created_at: string };
 type StatusFilter = "pending" | "approved" | "rejected";
 
 function AdminPanel() {
-  const { user } = Route.useRouteContext();
-  const navigate = useNavigate();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const admin = isAdminEmail(user.email);
-
-  useEffect(() => {
-    if (!admin) navigate({ to: "/" });
-  }, [admin, navigate]);
-
   const { data: bars = [], isLoading } = useQuery({
-    enabled: admin,
     queryKey: ["admin-bars", filter],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -45,7 +40,6 @@ function AdminPanel() {
   });
 
   const { data: counts } = useQuery({
-    enabled: admin,
     queryKey: ["admin-bar-counts"],
     queryFn: async () => {
       const [p, a, r] = await Promise.all([
@@ -72,8 +66,6 @@ function AdminPanel() {
     setActingId(null);
   };
 
-  if (!admin) return null;
-
   const tabs: { key: StatusFilter; label: string }[] = [
     { key: "pending", label: `Pendientes${counts ? ` (${counts.pending})` : ""}` },
     { key: "approved", label: `Aprobados${counts ? ` (${counts.approved})` : ""}` },
@@ -89,6 +81,7 @@ function AdminPanel() {
           <h1 className="font-display text-4xl">Solicitudes de bares</h1>
         </div>
 
+        {/* Tabs */}
         <div className="flex gap-2 mb-8 border-b border-border pb-0">
           {tabs.map((t) => (
             <button
@@ -155,28 +148,48 @@ function AdminPanel() {
 
               {bar.status === "pending" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button size="sm" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "approved")}
-                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold">
+                  <Button
+                    size="sm"
+                    disabled={actingId === bar.id}
+                    onClick={() => setStatus(bar.id, "approved")}
+                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold"
+                  >
                     <CheckCircle2 className="size-4 mr-1.5" /> Aprobar
                   </Button>
-                  <Button size="sm" variant="outline" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "rejected")}
-                    className="border-red-card/50 text-red-card hover:bg-red-card/10">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actingId === bar.id}
+                    onClick={() => setStatus(bar.id, "rejected")}
+                    className="border-red-card/50 text-red-card hover:bg-red-card/10"
+                  >
                     <XCircle className="size-4 mr-1.5" /> Rechazar
                   </Button>
                 </div>
               )}
+
               {bar.status === "approved" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button size="sm" variant="outline" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "rejected")}
-                    className="border-red-card/50 text-red-card hover:bg-red-card/10">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={actingId === bar.id}
+                    onClick={() => setStatus(bar.id, "rejected")}
+                    className="border-red-card/50 text-red-card hover:bg-red-card/10"
+                  >
                     <XCircle className="size-4 mr-1.5" /> Dar de baja
                   </Button>
                 </div>
               )}
+
               {bar.status === "rejected" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button size="sm" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "approved")}
-                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold">
+                  <Button
+                    size="sm"
+                    disabled={actingId === bar.id}
+                    onClick={() => setStatus(bar.id, "approved")}
+                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold"
+                  >
                     <CheckCircle2 className="size-4 mr-1.5" /> Aprobar igual
                   </Button>
                 </div>
@@ -191,7 +204,9 @@ function AdminPanel() {
 
 function Info({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <p className="flex items-center gap-1.5 text-muted-foreground">{icon} {label}</p>
+    <p className="flex items-center gap-1.5 text-muted-foreground">
+      {icon} {label}
+    </p>
   );
 }
 
