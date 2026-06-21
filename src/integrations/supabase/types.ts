@@ -157,7 +157,6 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
-          email: string | null
           id: string
           updated_at: string
         }
@@ -165,7 +164,6 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
-          email?: string | null
           id: string
           updated_at?: string
         }
@@ -173,7 +171,6 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
-          email?: string | null
           id?: string
           updated_at?: string
         }
@@ -212,6 +209,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "bar_owner"
