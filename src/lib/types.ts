@@ -28,9 +28,7 @@ export interface Bar {
   cover_image_url: string | null;
   features: string[];
   status: BarStatus;
-  created_at: string;
-  updated_at: string;
-  approved_at: string | null;
+  wants_meeting: boolean;
 }
 
 export interface BarWithMatches extends Bar {
@@ -63,11 +61,11 @@ export const NEIGHBORHOODS_BY_ZONA: Record<Zona, string[]> = {
     "Munro","Carapachay","La Lucila",
   ],
   "Zona Sur": [
-    "Avellaneda","Lanús","Lomas de Zamora","Quilmes","Banfield","Adrogué",
+    "Avellaneda","Lanús","Lomas de Zamora","Quilmes","Banfield","Adrogue",
     "Temperley","Bernal","Wilde","Sarandí",
   ],
   "Zona Oeste": [
-    "Ramos Mejía","Morón","Haedo","Ituzaingó","Castelar","San Justo",
+    "Ramos Mejía","Morón","Haedo","Ituzaíngo","Castelar","San Justo",
     "Caseros","Hurlingham",
   ],
 };
