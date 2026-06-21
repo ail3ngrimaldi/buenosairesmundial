@@ -1,5 +1,5 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
@@ -10,15 +10,6 @@ import type { Bar } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/admin")({
-  beforeLoad: async ({ context }) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", (context as { user: { id: string } }).user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!data) throw redirect({ to: "/" });
-  },
   component: AdminPanel,
 });
 
@@ -26,11 +17,34 @@ type BarWithMeeting = Bar & { wants_meeting: boolean; created_at: string };
 type StatusFilter = "pending" | "approved" | "rejected";
 
 function AdminPanel() {
+  const { user } = Route.useRouteContext();
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [actingId, setActingId] = useState<string | null>(null);
 
+  // Check admin role inside the component — more reliable than beforeLoad
+  const { data: isAdmin, isLoading: checkingRole } = useQuery({
+    queryKey: ["is-admin", user.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+      return !!data;
+    },
+  });
+
+  useEffect(() => {
+    if (!checkingRole && isAdmin === false) {
+      navigate({ to: "/" });
+    }
+  }, [isAdmin, checkingRole, navigate]);
+
   const { data: bars = [], isLoading } = useQuery({
+    enabled: !!isAdmin,
     queryKey: ["admin-bars", filter],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -44,6 +58,7 @@ function AdminPanel() {
   });
 
   const { data: counts } = useQuery({
+    enabled: !!isAdmin,
     queryKey: ["admin-bar-counts"],
     queryFn: async () => {
       const [p, a, r] = await Promise.all([
@@ -69,6 +84,17 @@ function AdminPanel() {
     }
     setActingId(null);
   };
+
+  if (checkingRole) {
+    return (
+      <div className="min-h-screen bg-stadium">
+        <SiteHeader />
+        <div className="max-w-4xl mx-auto p-12 text-center text-muted-foreground">Verificando acceso…</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) return null;
 
   const tabs: { key: StatusFilter; label: string }[] = [
     { key: "pending", label: `Pendientes${counts ? ` (${counts.pending})` : ""}` },
@@ -151,48 +177,28 @@ function AdminPanel() {
 
               {bar.status === "pending" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button
-                    size="sm"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "approved")}
-                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold"
-                  >
+                  <Button size="sm" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "approved")}
+                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold">
                     <CheckCircle2 className="size-4 mr-1.5" /> Aprobar
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "rejected")}
-                    className="border-red-card/50 text-red-card hover:bg-red-card/10"
-                  >
+                  <Button size="sm" variant="outline" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "rejected")}
+                    className="border-red-card/50 text-red-card hover:bg-red-card/10">
                     <XCircle className="size-4 mr-1.5" /> Rechazar
                   </Button>
                 </div>
               )}
-
               {bar.status === "approved" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "rejected")}
-                    className="border-red-card/50 text-red-card hover:bg-red-card/10"
-                  >
+                  <Button size="sm" variant="outline" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "rejected")}
+                    className="border-red-card/50 text-red-card hover:bg-red-card/10">
                     <XCircle className="size-4 mr-1.5" /> Dar de baja
                   </Button>
                 </div>
               )}
-
               {bar.status === "rejected" && (
                 <div className="flex gap-3 pt-3 border-t border-border">
-                  <Button
-                    size="sm"
-                    disabled={actingId === bar.id}
-                    onClick={() => setStatus(bar.id, "approved")}
-                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold"
-                  >
+                  <Button size="sm" disabled={actingId === bar.id} onClick={() => setStatus(bar.id, "approved")}
+                    className="bg-pitch text-foreground hover:bg-pitch/80 font-semibold">
                     <CheckCircle2 className="size-4 mr-1.5" /> Aprobar igual
                   </Button>
                 </div>
@@ -207,9 +213,7 @@ function AdminPanel() {
 
 function Info({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <p className="flex items-center gap-1.5 text-muted-foreground">
-      {icon} {label}
-    </p>
+    <p className="flex items-center gap-1.5 text-muted-foreground">{icon} {label}</p>
   );
 }
 
