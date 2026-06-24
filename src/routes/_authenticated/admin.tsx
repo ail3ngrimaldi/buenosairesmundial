@@ -26,34 +26,33 @@ function AdminPanel() {
   const [filter, setFilter] = useState<StatusFilter>("pending");
   const [actingId, setActingId] = useState<string | null>(null);
 
-  const { data: bars = [], isLoading } = useQuery({
-    queryKey: ["admin-bars", filter],
+  // Single fetch of all bars — filtering and counts are computed client-side.
+  // This is both faster (one round-trip instead of four) and keeps the tab
+  // counts perfectly in sync with the visible list.
+  const { data: allBars = [], isLoading } = useQuery({
+    queryKey: ["admin-bars"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("bars")
         .select("*")
-        .eq("status", filter)
         .order("created_at", { ascending: true });
       if (error) throw error;
       return data as BarWithMeeting[];
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
-  const { data: counts } = useQuery({
-    queryKey: ["admin-bar-counts"],
-    queryFn: async () => {
-      const [p, a, r] = await Promise.all([
-        supabase.from("bars").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.from("bars").select("id", { count: "exact", head: true }).eq("status", "approved"),
-        supabase.from("bars").select("id", { count: "exact", head: true }).eq("status", "rejected"),
-      ]);
-      return { pending: p.count ?? 0, approved: a.count ?? 0, rejected: r.count ?? 0 };
-    },
-  });
+  const bars = allBars.filter((b) => b.status === filter);
+  const counts = {
+    pending: allBars.filter((b) => b.status === "pending").length,
+    approved: allBars.filter((b) => b.status === "approved").length,
+    rejected: allBars.filter((b) => b.status === "rejected").length,
+  };
 
   const setStatus = async (barId: string, status: "approved" | "rejected") => {
     setActingId(barId);
-    const patch: Record<string, unknown> = { status };
+    const patch: { status: "approved" | "rejected"; approved_at?: string } = { status };
     if (status === "approved") patch.approved_at = new Date().toISOString();
     const { error } = await supabase.from("bars").update(patch).eq("id", barId);
     if (error) {
@@ -61,15 +60,14 @@ function AdminPanel() {
     } else {
       toast.success(status === "approved" ? "Bar aprobado ✓" : "Bar rechazado");
       qc.invalidateQueries({ queryKey: ["admin-bars"] });
-      qc.invalidateQueries({ queryKey: ["admin-bar-counts"] });
     }
     setActingId(null);
   };
 
   const tabs: { key: StatusFilter; label: string }[] = [
-    { key: "pending", label: `Pendientes${counts ? ` (${counts.pending})` : ""}` },
-    { key: "approved", label: `Aprobados${counts ? ` (${counts.approved})` : ""}` },
-    { key: "rejected", label: `Rechazados${counts ? ` (${counts.rejected})` : ""}` },
+    { key: "pending", label: `Pendientes (${counts.pending})` },
+    { key: "approved", label: `Aprobados (${counts.approved})` },
+    { key: "rejected", label: `Rechazados (${counts.rejected})` },
   ];
 
   return (

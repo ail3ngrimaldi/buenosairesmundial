@@ -69,6 +69,7 @@ export type Database = {
           slug: string
           status: Database["public"]["Enums"]["bar_status"]
           updated_at: string
+          wants_meeting: boolean
           zona: string
         }
         Insert: {
@@ -89,6 +90,7 @@ export type Database = {
           slug: string
           status?: Database["public"]["Enums"]["bar_status"]
           updated_at?: string
+          wants_meeting?: boolean
           zona: string
         }
         Update: {
@@ -109,6 +111,7 @@ export type Database = {
           slug?: string
           status?: Database["public"]["Enums"]["bar_status"]
           updated_at?: string
+          wants_meeting?: boolean
           zona?: string
         }
         Relationships: []

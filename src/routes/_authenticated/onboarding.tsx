@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { SiteHeader } from "@/components/SiteHeader";
 import { Button } from "@/components/ui/button";
@@ -42,11 +43,13 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
 function Onboarding() {
   const { user } = Route.useRouteContext();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [zona, setZona] = useState<Zona>("CABA");
   const [features, setFeatures] = useState<Set<string>>(new Set());
   const [wantsMeeting, setWantsMeeting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [savedName, setSavedName] = useState("");
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -77,25 +80,32 @@ function Onboarding() {
       "-" +
       Math.random().toString(36).slice(2, 6);
 
-    const { error } = await supabase.from("bars").insert({
-      owner_id: user.id,
-      name: parsed.data.name,
-      slug,
-      address: parsed.data.address,
-      neighborhood: parsed.data.neighborhood,
-      zona: parsed.data.zona,
-      latitude: coords.lat,
-      longitude: coords.lng,
-      description: parsed.data.description ?? null,
-      phone: parsed.data.phone ?? null,
-      instagram: parsed.data.instagram ?? null,
-      features: Array.from(features),
-      wants_meeting: wantsMeeting,
-      status: "pending",
-    });
+    const { data: inserted, error } = await supabase
+      .from("bars")
+      .insert({
+        owner_id: user.id,
+        name: parsed.data.name,
+        slug,
+        address: parsed.data.address,
+        neighborhood: parsed.data.neighborhood,
+        zona: parsed.data.zona,
+        latitude: coords.lat,
+        longitude: coords.lng,
+        description: parsed.data.description ?? null,
+        phone: parsed.data.phone ?? null,
+        instagram: parsed.data.instagram ?? null,
+        features: Array.from(features),
+        wants_meeting: wantsMeeting,
+        status: "pending",
+      })
+      .select()
+      .single();
 
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
+    // Prime the cache so "Mi bar" shows the new bar instantly (no refetch wait).
+    if (inserted) qc.setQueryData(["my-bar", user.id], inserted);
+    setSavedName(parsed.data.name);
     setDone(true);
   };
 
@@ -117,7 +127,7 @@ function Onboarding() {
           </div>
           <h1 className="font-display text-4xl mb-3">¡Solicitud enviada!</h1>
           <p className="text-muted-foreground mb-2">
-            Vamos a revisar los datos de <strong className="text-foreground">{}</strong> y te avisamos en menos de <strong className="text-foreground">24 horas</strong>.
+            Estamos revisando los datos de <strong className="text-foreground">{savedName}</strong>. Apenas la aprobemos, te avisamos por alguno de los canales que informaste.
           </p>
           {wantsMeeting && (
             <p className="text-sm text-albice mt-3 flex items-center justify-center gap-2">
@@ -125,9 +135,9 @@ function Onboarding() {
             </p>
           )}
           <p className="text-sm text-muted-foreground mt-6 mb-8">
-            Mientras tanto podés ir cargando los partidos que vas a transmitir en tu dashboard.
+            Mientras tanto podés ir cargando los partidos que vas a transmitir en tu panel.
           </p>
-          <Button onClick={() => navigate({ to: "/dashboard" })} className="bg-albice text-stadium hover:bg-albice/90 font-semibold">
+          <Button onClick={() => navigate({ to: "/mibar" })} className="bg-albice text-stadium hover:bg-albice/90 font-semibold">
             Ir a mi panel
           </Button>
         </main>

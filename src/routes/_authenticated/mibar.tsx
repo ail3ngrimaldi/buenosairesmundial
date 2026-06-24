@@ -10,7 +10,7 @@ import { flag } from "@/components/TeamBadge";
 import type { Bar, Match } from "@/lib/types";
 import { Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/dashboard")({
+export const Route = createFileRoute("/_authenticated/mibar")({
   component: Dashboard,
 });
 
@@ -26,6 +26,8 @@ function Dashboard() {
       if (error) throw error;
       return data as Bar | null;
     },
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: matches = [] } = useQuery({
@@ -118,8 +120,12 @@ function Dashboard() {
           <div className="my-6 p-4 rounded-xl bg-albice/10 border border-albice/30 flex items-start gap-3">
             <AlertCircle className="size-5 text-albice mt-0.5 shrink-0" />
             <div className="text-sm">
-              <p className="font-semibold mb-1">Tu bar está en revisión.</p>
-              <p className="text-muted-foreground">Cuando lo aprobemos, vas a aparecer en el mapa. Mientras tanto, podés ir cargando los partidos que vas a transmitir.</p>
+              <p className="font-semibold mb-1">Estamos revisando tu solicitud.</p>
+              <p className="text-muted-foreground">
+                Esto puede tardar unos minutos. Apenas la aprobemos, te vamos a notificar por
+                alguno de los canales que informaste (teléfono o Instagram). Mientras tanto,
+                podés ir cargando los partidos que vas a transmitir.
+              </p>
             </div>
           </div>
         )}

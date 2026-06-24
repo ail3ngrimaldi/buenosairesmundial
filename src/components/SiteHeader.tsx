@@ -4,7 +4,8 @@ import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, ShieldCheck } from "lucide-react";
+import { isAdminEmail } from "@/lib/admin";
 
 export function SiteHeader() {
   const [session, setSession] = useState<Session | null>(null);
@@ -17,7 +18,7 @@ export function SiteHeader() {
   }, []);
 
   const handleSignIn = async () => {
-    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/dashboard" });
+    const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/mibar" });
     if (res.error) console.error(res.error);
   };
 
@@ -39,9 +40,22 @@ export function SiteHeader() {
           </Link>
           {session ? (
             <>
-              <Link to="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors" activeProps={{ className: "text-albice" }}>
+              <Link
+                to="/mibar"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                activeProps={{ className: "text-albice font-semibold underline underline-offset-8 decoration-2" }}
+              >
                 Mi bar
               </Link>
+              {isAdminEmail(session.user.email) && (
+                <Link
+                  to="/admin"
+                  className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
+                  activeProps={{ className: "text-albice font-semibold underline underline-offset-8 decoration-2" }}
+                >
+                  <ShieldCheck className="size-4" /> Admin
+                </Link>
+              )}
               <Button variant="ghost" size="sm" onClick={handleSignOut} className="text-muted-foreground hover:text-foreground">
                 <LogOut className="size-4" />
               </Button>
