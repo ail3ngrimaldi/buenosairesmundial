@@ -102,7 +102,11 @@ function Onboarding() {
       .single();
 
     setSubmitting(false);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      console.error("Bar insert error:", error);
+      toast.error(`Error al guardar: ${error.message}`);
+      return;
+    }
     // Prime the cache so "Mi bar" shows the new bar instantly (no refetch wait).
     if (inserted) qc.setQueryData(["my-bar", user.id], inserted);
     setSavedName(parsed.data.name);
