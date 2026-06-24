@@ -31,7 +31,8 @@ function Dashboard() {
   const { data: matches = [] } = useQuery({
     queryKey: ["matches"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("matches").select("*").order("kickoff_at");
+      const now = new Date().toISOString();
+      const { data, error } = await supabase.from("matches").select("*").gte("kickoff_at", now).order("kickoff_at");
       if (error) throw error;
       return data as Match[];
     },

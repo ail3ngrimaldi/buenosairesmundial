@@ -28,6 +28,7 @@ export interface Bar {
   cover_image_url: string | null;
   features: string[];
   status: BarStatus;
+  wants_meeting: boolean;
 }
 
 export interface BarWithMatches extends Bar {
