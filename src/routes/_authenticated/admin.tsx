@@ -8,16 +8,12 @@ import { toast } from "sonner";
 import { CheckCircle2, XCircle, Clock, CalendarCheck, MapPin, Phone, Instagram } from "lucide-react";
 import type { Bar } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { isAdminEmail } from "@/lib/admin";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   beforeLoad: async ({ context }) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", (context as { user: { id: string } }).user.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (!data) throw redirect({ to: "/" });
+    const user = (context as { user: { email?: string } }).user;
+    if (!isAdminEmail(user?.email)) throw redirect({ to: "/" });
   },
   component: AdminPanel,
 });
